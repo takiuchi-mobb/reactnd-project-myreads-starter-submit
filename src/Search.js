@@ -58,7 +58,7 @@ class Search extends Component {
 		showingBooks.sort(sortBy('title'))
 		return <div className="search-books">
             <div className="search-books-bar">
-              <Link to="/books" className="close-search">Close</Link>
+              <Link to="/" className="close-search">Close</Link>
               
               <div className="search-books-input-wrapper">
                 {/* 
