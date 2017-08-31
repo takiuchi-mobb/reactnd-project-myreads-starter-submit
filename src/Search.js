@@ -4,49 +4,77 @@ import escapeStringRegexp from 'escape-string-regexp'
 import sortBy from 'sort-by'
 import _ from 'lodash';
 import { Link } from 'react-router-dom'
-
 import Books from './Books'
-
-
 
 class Search extends Component {
 
 	state = {
 		query: "",
-		books: []
+		books: [],
+		currentlyReading: [],
+		wantToRead: [], 
+		read: []
 	}
 
 	moveBook = (book, event) => {
 		const dst = event.target.value
 		const src = book.shelf
+		if (dst === src) {
+			return
+		}
+
+		book.shelf = dst
+
+		this.setState((state) => ({
+			[src]: state[src].filter((c) => c.id !== book.id),
+			[dst]: state[dst].concat([book])
+		}))
 
 		BooksAPI.update(book, dst).then((response) => {
 			console.log(response)
-			book.shelf = dst
 		})
 	}
 
 	updateQuery = (query) => {
 		this.setState({query: query.trim() })
-		console.log(query)
  		BooksAPI.search(query.trim(), 50).then((books) => { 
- 			console.log(books)
  			if(books.error && books.error === "empty query") {
  				this.setState({books: [] })
  			} else {
  				this.setState({books: books})
  			}
 		})
-
 	}
+
+	appendShelfState = (books) => {
+		return  books.map((book) => { 
+			book.shelf = "none"
+			return book 
+		}).map((book) => {
+			["currentlyReading","wantToRead", "read"].map((key) => {
+				this.state[key].map((org_book) => {
+					if(org_book.id === book.id) {
+						book.shelf = key
+					}
+					return org_book
+				})
+				return key
+			})
+			return book
+		})
+	}
+
 	componentDidMount() {
-		 // BooksAPI.getAll().then((books) => this.setState({books: books}))
+	 BooksAPI.getAll().then((books) => this.setState({
+	 	currentlyReading: books.filter((book) => "currentlyReading" === book.shelf),
+	 	wantToRead: books.filter((book) => "wantToRead" === book.shelf),
+	 	read: books.filter((book) => "read" === book.shelf),
+	 	none: books.filter((book) => "none" === book.shelf)
+	 }))
 	}
-
 	render() {
 		let showingBooks 
 		if(this.state.query) {
-			console.log
 			const match = new RegExp(escapeStringRegexp(this.state.query), 'i')
 			const filterByBooks = this.state.books.filter((book) => match.test(book.title))
 			const filterByAuthors = this.state.books.filter((book) => (book.authors) ? match.test(book.authors.join(" ")) : false )
@@ -54,8 +82,8 @@ class Search extends Component {
 		} else {
 			showingBooks = this.state.books
 		}
-
-		showingBooks.sort(sortBy('title'))
+		let sortedBooks = this.appendShelfState(showingBooks).sort(sortBy('title'))
+		// showingBooks
 		return <div className="search-books">
             <div className="search-books-bar">
               <Link to="/" className="close-search">Close</Link>
@@ -81,7 +109,7 @@ class Search extends Component {
             <div className="search-books-results">
               <ol className="books-grid">
               <div>
-              	<Books onMoveBook={this.moveBook} title="All Books" books={showingBooks}/>
+              	<Books onMoveBook={this.moveBook} title="All Books" books={sortedBooks}/>
               </div>
               </ol>
             </div>

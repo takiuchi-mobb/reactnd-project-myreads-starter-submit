@@ -15,6 +15,7 @@ class BookShelf extends Component {
 	moveBook = (book, event) => {
 		const dst = event.target.value
 		const src = book.shelf
+		book.shelf = dst
 
 		if (dst === src) {
 			return
@@ -27,7 +28,6 @@ class BookShelf extends Component {
 
 		BooksAPI.update(book, dst).then((response) => {
 			console.log(response)
-			book.shelf = dst
 		})
 	}
 
